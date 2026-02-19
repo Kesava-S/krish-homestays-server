@@ -1,0 +1,32 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "fs": "^0.0.1-security",
+    "googleapis": "^166.0.0",
+    "html-pdf-node": "^1.0.8",
+    "ical": "^0.8.0",
+    "node-fetch": "^2.7.0",
+    "node-ical": "^0.25.3",
+    "nodemailer": "^7.0.10",
+    "nodemon": "^3.1.11",
+    "pdfkit": "^0.17.2",
+    "pg": "^8.16.3",
+    "razorpay": "^2.9.6",
+    "stripe": "^20.0.0"
+  }
+}
