@@ -13,7 +13,7 @@ async function sendConfirmationEmail(bookingDetails) {
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: bookingDetails.email,
-        subject: 'Booking Confirmation - Krish Homestay',
+        subject: 'Booking Confirmation - Krish Homestays',
         html: `
 <div style="font-family: Arial, Helvetica, sans-serif; background-color: #f4f6f8; padding: 20px;">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.08);">
@@ -21,7 +21,7 @@ async function sendConfirmationEmail(bookingDetails) {
     <!-- Header -->
     <tr>
       <td style="background-color: #2c7be5; padding: 20px; text-align: center;">
-        <h1 style="color: #ffffff; margin: 0;">Krish Homestay</h1>
+        <h1 style="color: #ffffff; margin: 0;">Krish Homestays</h1>
         <p style="color: #e8f0ff; margin: 5px 0 0;">Your stay is confirmed 🎉</p>
       </td>
     </tr>
@@ -32,7 +32,7 @@ async function sendConfirmationEmail(bookingDetails) {
         <h2 style="margin-top: 0;">Hello ${bookingDetails.guest_name},</h2>
 
         <p style="font-size: 15px; line-height: 1.6;">
-          Thank you for choosing <strong>Krish Homestay</strong>.  
+          Thank you for choosing <strong>Krish Homestays</strong>.  
           We are delighted to confirm your room reservation and look forward to welcoming you.
         </p>
 
@@ -99,10 +99,10 @@ async function sendConfirmationEmail(bookingDetails) {
     <tr>
       <td style="background-color: #f4f6f8; padding: 15px; text-align: center; font-size: 12px; color: #777;">
         <p style="margin: 0;">
-          Krish Homestay • Comfortable • Peaceful • Affordable
+          Krish Homestays • Comfortable • Peaceful • Affordable
         </p>
         <p style="margin: 5px 0 0;">
-          © ${new Date().getFullYear()} Krish Homestay. All rights reserved.
+          © ${new Date().getFullYear()} Krish Homestays. All rights reserved.
         </p>
       </td>
     </tr>
