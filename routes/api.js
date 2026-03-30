@@ -589,7 +589,7 @@ function generateReceiptHTML(booking, payment) {
       <!-- 🔁 Replace this src with your actual logo URL -->
       <img
         class="header-logo"
-        src="https://krishhomestays.com/logo.png"
+        src="https://krishhomestays.com/assets/logo/logo.png"
         alt="Krish Homestays Logo"
         onerror="this.style.display='none'"
       />
@@ -766,7 +766,7 @@ function generateReceiptHTML(booking, payment) {
       <!-- 🔁 Same logo repeated smaller in footer -->
       <img
         class="footer-logo"
-        src="https://krishhomestays.com/logo.png"
+        src="https://krishhomestays.com/assets/logo/logo.png"
         alt="Krish Homestays"
         onerror="this.style.display='none'"
       />
