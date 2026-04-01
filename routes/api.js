@@ -217,21 +217,54 @@ router.post('/bookings', async (req, res) => {
 });
 
 
-const htmlToPdf = require('html-pdf-node');
-const path = require('path')
-const fs = require('fs')
-router.use('/receipts', express.static(path.join(__dirname, 'receipts')));
+// const htmlToPdf = require('html-pdf-node');
+// const path = require('path')
+// const fs = require('fs')
+// router.use('/receipts', express.static(path.join(__dirname, 'receipts')));
+
+// router.post('/generate-receipt', async (req, res) => {
+//   try {
+//     const { booking, payment } = req.body;
+
+//     const html = generateReceiptHTML(booking, payment || {});
+
+//     const pdfBuffer = await htmlToPdf.generatePdf(
+//       { content: html },
+//       { format: 'A4', printBackground: true }
+//     );
+
+//     res.json({
+//       success: true,
+//       booking_id: booking.booking_id,
+//       fileName: `receipt_${booking.booking_id}.pdf`,
+//       pdfBase64: pdfBuffer.toString('base64')
+//     });
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false });
+//   }
+// });
+
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 
 router.post('/generate-receipt', async (req, res) => {
   try {
     const { booking, payment } = req.body;
-
     const html = generateReceiptHTML(booking, payment || {});
 
-    const pdfBuffer = await htmlToPdf.generatePdf(
-      { content: html },
-      { format: 'A4', printBackground: true }
-    );
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+    await browser.close();
 
     res.json({
       success: true,
@@ -242,7 +275,7 @@ router.post('/generate-receipt', async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

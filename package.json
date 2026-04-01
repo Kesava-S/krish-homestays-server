@@ -12,6 +12,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@sparticuz/chromium": "^143.0.4",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.3",
@@ -26,6 +27,7 @@
     "nodemon": "^3.1.11",
     "pdfkit": "^0.17.2",
     "pg": "^8.16.3",
+    "puppeteer-core": "^24.40.0",
     "razorpay": "^2.9.6",
     "stripe": "^20.0.0"
   }
