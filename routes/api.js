@@ -246,37 +246,32 @@ router.post('/bookings', async (req, res) => {
 //   }
 // });
 
-const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
 
 router.post('/generate-receipt', async (req, res) => {
-  try {
-    const { booking, payment } = req.body;
-    const html = generateReceiptHTML(booking, payment || {});
+  const { booking, payment } = req.body;
+  const html = generateReceiptHTML(booking, payment || {});
 
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+  });
 
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-    await browser.close();
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: 'networkidle0' });
 
-    res.json({
-      success: true,
-      booking_id: booking.booking_id,
-      fileName: `receipt_${booking.booking_id}.pdf`,
-      pdfBase64: pdfBuffer.toString('base64')
-    });
+  const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+  await browser.close();
 
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: err.message });
-  }
+  res.json({
+    success: true,
+    booking_id: booking.booking_id,
+    fileName: `receipt_${booking.booking_id}.pdf`,
+    pdfBase64: pdfBuffer.toString('base64')
+  });
 });
 
 
