@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getBookings, addBooking, getCalendarRules, updateCalendarRules } = require('../services/sheetsService');
 const { createCalendarEvent } = require('../services/calendarService');
-const { sendConfirmationEmail } = require('../services/emailService');
+const { sendConfirmationEmail, sendReceiptEmail } = require('../services/emailService');
 const { createPaymentIntent } = require('../services/paymentService');
 
 const { fetchAirbnbBookings } = require('../services/fetchAirbnbBookings')
@@ -243,6 +243,23 @@ router.post('/generate-receipt', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false });
+  }
+});
+
+router.post('/send-receipt', async (req, res) => {
+  try {
+    const { booking, payment } = req.body;
+
+    // ✅ Send both emails in parallel
+    await Promise.all([
+      sendConfirmationEmail(booking),
+      sendReceiptEmail(booking, payment || {})
+    ]);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

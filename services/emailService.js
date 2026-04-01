@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const { generateReceiptHTML } = require('./receiptTemplate');
+const { generateReceiptPDF } = require('./pdfService');
 require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
@@ -196,13 +197,21 @@ async function sendConfirmationEmail(bookingDetails) {
 }
 
 async function sendReceiptEmail(booking, payment = {}) {
-  const { generateReceiptHTML } = require('./receiptTemplate'); // we'll move it here
+  // ✅ Generate PDF buffer
+  const pdfBuffer = await generateReceiptPDF(booking, payment);
 
   const mailOptions = {
     from: `"Krish Homestays" <${process.env.EMAIL_USER}>`,
     to: booking.email,
     subject: `Booking Confirmation & Receipt – ${booking.booking_id}`,
-    html: generateReceiptHTML(booking, payment)
+    html: generateReceiptHTML(booking, payment),
+    attachments: [
+      {
+        filename: `receipt_${booking.booking_id}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }
+    ]
   };
 
   try {
