@@ -251,10 +251,10 @@ router.post('/send-receipt', async (req, res) => {
     const { booking, payment } = req.body;
 
     // ✅ Send both emails in parallel
-    await Promise.all([
-      sendConfirmationEmail(booking),
-      sendReceiptEmail(booking, payment || {})
-    ]);
+    // await Promise.all([
+    // sendConfirmationEmail(booking),
+    await sendReceiptEmail(booking, payment || {})
+    // ]);
 
     res.json({ success: true });
   } catch (err) {
