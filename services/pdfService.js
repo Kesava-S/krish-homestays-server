@@ -96,7 +96,7 @@ function generateReceiptPDF(booking, payment = {}) {
       ['Guest Name', booking.guest_name],
       ['Email',      booking.email],
       ['Phone',      booking.phone],
-      ['Guests',     `${booking.guests_count} Guests`],
+      ['Guests', `${booking.adults ?? booking.guests_count} Adults${booking.children ? ` + ${booking.children} Children` : ''}`],
     ];
     bRows.forEach(([label, val], i) => {
       const ry = boxY + 26 + i * 22;
@@ -157,7 +157,7 @@ function generateReceiptPDF(booking, payment = {}) {
     doc.text('Homestay Accommodation',    M + 8,   cy + 7, { width: 160 });
     doc.text(booking.check_in_date,       M + 168, cy + 7, { width: 80  });
     doc.text(booking.check_out_date,      M + 248, cy + 7, { width: 80  });
-    doc.text(String(booking.guests_count),M + 328, cy + 7, { width: 50  });
+    doc.text(`${booking.adults ?? booking.guests_count}A${booking.children ? `+${booking.children}C` : ''}`, M + 328, cy + 7, { width: 50 });
     doc.fillColor(green).font('Helvetica-Bold')
        .text(`Rs.${booking.total_amount}`, M + 378, cy + 7, { width: CW - 386, align: 'right' });
     cy += 30;

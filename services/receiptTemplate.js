@@ -80,8 +80,8 @@ function generateReceiptHTML(booking, payment = {}) {
                       <div style="font-size:13px;color:#222222;font-weight:600;">${booking.phone}</div>
                     </div>
                     <div>
-                      <div style="font-size:10px;color:#999999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Total Guests</div>
-                      <div style="font-size:13px;color:#222222;font-weight:600;">${booking.guests_count} Guests</div>
+                      <div style="font-size:10px;color:#999999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Guests</div>
+                      <div style="font-size:13px;color:#222222;font-weight:600;">${booking.adults ?? booking.guests_count} Adults${booking.children ? `, ${booking.children} Children` : ''}</div>
                     </div>
                   </td>
 
@@ -128,7 +128,7 @@ function generateReceiptHTML(booking, payment = {}) {
                     <td style="padding:12px 12px;color:#444444;">Homestay Accommodation</td>
                     <td style="padding:12px 12px;color:#444444;">${booking.check_in_date}</td>
                     <td style="padding:12px 12px;color:#444444;">${booking.check_out_date}</td>
-                    <td style="padding:12px 12px;color:#444444;">${booking.guests_count}</td>
+                    <td style="padding:12px 12px;color:#444444;">${booking.adults ?? booking.guests_count}A${booking.children ? ` + ${booking.children}C` : ''}</td>
                     <td style="padding:12px 12px;color:#1f6f43;font-weight:600;text-align:right;">&#8377;${booking.total_amount}</td>
                   </tr>
                 </tbody>

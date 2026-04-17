@@ -22,7 +22,7 @@ async function getBookings() {
     try {
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: 'Bookings!A:K',
+            range: 'Bookings!A:N',
         });
 
         const rows = response.data.values;
@@ -36,9 +36,12 @@ async function getBookings() {
             phone: row[4],
             check_in_date: row[5],
             check_out_date: row[6],
-            guests_count: parseInt(row[7]),
+            guests_count: parseInt(row[7]),   // calendar convention: 4=remaining,5=partial,11=full
             status: row[8],
-            total_amount: row[9]
+            total_amount: row[9],
+            adults: row[11] ? parseInt(row[11]) : null,
+            children: row[12] ? parseInt(row[12]) : null,
+            room_type: row[13] || null,
         }));
     } catch (error) {
         console.error('Error fetching bookings:', error);
@@ -57,12 +60,17 @@ async function addBooking(booking) {
             booking.check_out_date,
             booking.guests_count,
             'confirmed',
-            booking.total_amount
+            booking.total_amount,
+            '',                              // col J — Payment ID (filled later)
+            '',                              // col K — placeholder
+            booking.adults   ?? '',          // col L — Adults
+            booking.children ?? '',          // col M — Children
+            booking.room_type ?? '',         // col N — Room Type
         ]];
 
         await sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
-            range: 'Bookings!A:K',
+            range: 'Bookings!A:N',
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
             resource: { values },

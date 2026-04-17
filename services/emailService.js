@@ -95,7 +95,7 @@ async function sendConfirmationEmail(bookingDetails) {
                       </tr>
                       <tr>
                         <td style="color:#888; padding: 8px 0; border-bottom:1px solid #eef0f2;">👥 Guests</td>
-                        <td style="font-weight:600; padding: 8px 0; border-bottom:1px solid #eef0f2;">${bookingDetails.guests_count}</td>
+                        <td style="font-weight:600; padding: 8px 0; border-bottom:1px solid #eef0f2;">${bookingDetails.adults ?? bookingDetails.guests_count} Adults${bookingDetails.children ? `, ${bookingDetails.children} Children` : ''}</td>
                       </tr>
                       <tr>
                         <td style="color:#888; padding: 10px 0 0 0;">💳 Amount Paid</td>

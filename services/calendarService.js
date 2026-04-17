@@ -39,7 +39,7 @@ async function createCalendarEvent(bookingDetails) {
         const event = {
             summary: `Booking: ${bookingDetails.guest_name}`,
             location: 'Krish Homestays, Munnar',
-            description: `Guests: ${bookingDetails.guests_count}\nPhone: ${bookingDetails.phone}\nEmail: ${bookingDetails.email}`,
+            description: `Adults: ${bookingDetails.adults ?? bookingDetails.guests_count}\nChildren: ${bookingDetails.children ?? 0}\nRoom: ${bookingDetails.room_type ?? 'full'}\nPhone: ${bookingDetails.phone}\nEmail: ${bookingDetails.email}`,
             start: {
                 date: bookingDetails.check_in_date, // YYYY-MM-DD
                 timeZone: 'Asia/Kolkata',

@@ -62,6 +62,7 @@ router.get('/calendar-data', async (req, res) => {
       .map(b => ({
         start: b.check_in_date,
         end: b.check_out_date,
+        guests_count: b.guests_count,
         type: 'website'
       }));
 
@@ -146,7 +147,7 @@ router.post("/verify-payment", (req, res) => {
 
 // Create booking
 router.post('/bookings', async (req, res) => {
-  const { guest_name, email, phone, check_in_date, check_out_date, guests_count, total_amount } = req.body;
+  const { guest_name, email, phone, check_in_date, check_out_date, guests_count, adults, children, room_type, total_amount } = req.body;
 
   console.log("Booking data:", req.body);
 
@@ -196,6 +197,9 @@ router.post('/bookings', async (req, res) => {
       check_in_date,
       check_out_date,
       guests_count,
+      adults,
+      children,
+      room_type,
       total_amount
     };
 
