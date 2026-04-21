@@ -3,15 +3,22 @@ require('dotenv').config();
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
-const bookingAuth = new google.auth.GoogleAuth({
-    scopes: SCOPES,
-    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS_BOOKING,
-});
+const bookingAuthConfig = { scopes: SCOPES };
+if (process.env.GOOGLE_CREDENTIALS_JSON_BOOKING) {
+    bookingAuthConfig.credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON_BOOKING);
+} else {
+    bookingAuthConfig.keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS_BOOKING;
+}
 
-const calendarAuth = new google.auth.GoogleAuth({
-    scopes: SCOPES,
-    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS_CALENDAR,
-});
+const calendarAuthConfig = { scopes: SCOPES };
+if (process.env.GOOGLE_CREDENTIALS_JSON_CALENDAR) {
+    calendarAuthConfig.credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON_CALENDAR);
+} else {
+    calendarAuthConfig.keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS_CALENDAR;
+}
+
+const bookingAuth  = new google.auth.GoogleAuth(bookingAuthConfig);
+const calendarAuth = new google.auth.GoogleAuth(calendarAuthConfig);
 
 const bookingSheets = google.sheets({ version: 'v4', auth: bookingAuth });
 const calendarSheets = google.sheets({ version: 'v4', auth: calendarAuth });

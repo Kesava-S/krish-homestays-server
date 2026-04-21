@@ -1,11 +1,17 @@
 const { google } = require('googleapis');
 require('dotenv').config(); // Load env from current dir
 
-const auth = new google.auth.GoogleAuth({
-    // keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON),
+const calendarAuthConfig = {
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-});
+};
+
+if (process.env.GOOGLE_CREDENTIALS_JSON_CALENDAR) {
+    calendarAuthConfig.credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON_CALENDAR);
+} else {
+    calendarAuthConfig.keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS_CALENDAR;
+}
+
+const auth = new google.auth.GoogleAuth(calendarAuthConfig);
 
 const sheets = google.sheets({ version: 'v4', auth });
 const SPREADSHEET_ID = process.env.CALENDAR_SPREADSHEET_ID;

@@ -1,32 +1,19 @@
 const { google } = require('googleapis');
 require('dotenv').config();
 
-// Initialize the Google Calendar API
-// You need to set up a Service Account in Google Cloud Console
-// and download the credentials JSON file.
-// Then set GOOGLE_APPLICATION_CREDENTIALS in .env to point to that file.
-// OR use OAuth2 if you prefer.
-
-// For simplicity, we'll assume a Service Account approach here as it's better for backend automation.
-// 1. Create Service Account.
-// 2. Share your main calendar (krishhomestays@gmail.com) with the Service Account email.
-// 3. Use the Service Account to insert events.
-
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
 const calendar = google.calendar({ version: 'v3' });
 
-// This authentication strategy depends on how you want to configure it.
-// Using a Service Account is recommended for server-to-server apps.
 const authConfig = {
     scopes: SCOPES,
 };
 
-if (process.env.GOOGLE_CREDENTIALS_JSON) {
-    authConfig.credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+if (process.env.GOOGLE_CREDENTIALS_JSON_CALENDAR) {
+    authConfig.credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON_CALENDAR);
 } else {
-    authConfig.keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    authConfig.keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS_CALENDAR;
 }
 
 const auth = new google.auth.GoogleAuth(authConfig);
