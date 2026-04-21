@@ -1,33 +1,43 @@
 const { google } = require('googleapis');
 require('dotenv').config();
 
-const authConfig = {
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-};
+const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
-if (process.env.GOOGLE_CREDENTIALS_JSON) {
-    authConfig.credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
-} else {
-    authConfig.keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-}
+const bookingAuth = new google.auth.GoogleAuth({
+    scopes: SCOPES,
+    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS_BOOKING,
+});
 
-const auth = new google.auth.GoogleAuth(authConfig);
+const calendarAuth = new google.auth.GoogleAuth({
+    scopes: SCOPES,
+    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS_CALENDAR,
+});
 
-const sheets = google.sheets({ version: 'v4', auth });
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+const bookingSheets = google.sheets({ version: 'v4', auth: bookingAuth });
+const calendarSheets = google.sheets({ version: 'v4', auth: calendarAuth });
+
+const BOOKING_SPREADSHEET_ID = process.env.BOOKING_SPREADSHEET_ID;
+const CALENDAR_SPREADSHEET_ID = process.env.CALENDAR_SPREADSHEET_ID;
+
+console.log(BOOKING_SPREADSHEET_ID);
+
 
 // --- Bookings ---
 
 async function getBookings() {
     try {
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: SPREADSHEET_ID,
-            range: 'Bookings!A:N',
+        const response = await bookingSheets.spreadsheets.values.get({
+            spreadsheetId: BOOKING_SPREADSHEET_ID,
+            range: "'Bookings Sheet'!A:R",
         });
+
+        console.log("Booking:\n", response.data.values);
 
         const rows = response.data.values;
         if (!rows || rows.length === 0) return [];
 
+        // A  B     C           D       E      F              G               H            I       J         K       L             M           N       O                  P                Q                R
+        // Id Date  Guest Name  Email   Phone  Check In Date  Check Out Date  Guest Count  Adults  Children  Status  Total Amount  Payment ID  source  Confirmation Sent  Remainder Sent   Review Requested Notes
         return rows.slice(1).map(row => ({
             id: row[0],
             date: row[1],
@@ -36,12 +46,13 @@ async function getBookings() {
             phone: row[4],
             check_in_date: row[5],
             check_out_date: row[6],
-            guests_count: parseInt(row[7]),   // calendar convention: 4=remaining,5=partial,11=full
-            status: row[8],
-            total_amount: row[9],
-            adults: row[11] ? parseInt(row[11]) : null,
-            children: row[12] ? parseInt(row[12]) : null,
-            room_type: row[13] || null,
+            guests_count: row[7] ? parseInt(row[7]) : null,
+            adults: row[8] ? parseInt(row[8]) : null,
+            children: row[9] ? parseInt(row[9]) : null,
+            status: row[10] || null,
+            total_amount: row[11] ? parseInt(row[11]) : null,
+            payment_id: row[12] || null,
+            source: row[13] || null,
         }));
     } catch (error) {
         console.error('Error fetching bookings:', error);
@@ -51,26 +62,28 @@ async function getBookings() {
 
 async function addBooking(booking) {
     try {
+        // A           B                   C                 D              E             F                     G                      H                    I                    J                     K         L                    M   N
+        // Booking Id  Date                Guest Name        Email          Phone Number  Check In Date         Check Out Date         Guest Count          Guest Adults         Guest Children        Status    Total Amount         PaymentId  source
         const values = [[
-            Date.now().toString(),
+            booking.booking_id,
+            new Date().toISOString().slice(0, 10),
             booking.guest_name,
             booking.email,
             booking.phone,
             booking.check_in_date,
             booking.check_out_date,
-            booking.guests_count,
+            booking.guests_count ?? '',
+            booking.adults ?? '',
+            booking.children ?? '',
             'confirmed',
             booking.total_amount,
-            '',                              // col J — Payment ID (filled later)
-            '',                              // col K — placeholder
-            booking.adults   ?? '',          // col L — Adults
-            booking.children ?? '',          // col M — Children
-            booking.room_type ?? '',         // col N — Room Type
+            '',
+            booking.source ?? 'website',
         ]];
 
-        await sheets.spreadsheets.values.append({
-            spreadsheetId: SPREADSHEET_ID,
-            range: 'Bookings!A:N',
+        await bookingSheets.spreadsheets.values.append({
+            spreadsheetId: BOOKING_SPREADSHEET_ID,
+            range: "'Bookings Sheet'!A:N",
             valueInputOption: 'USER_ENTERED',
             insertDataOption: 'INSERT_ROWS',
             resource: { values },
@@ -88,8 +101,8 @@ async function addBooking(booking) {
 async function getCalendarRules() {
     try {
         // We assume a sheet named 'CalendarRules' exists with columns: Date, Price, Status
-        const response = await sheets.spreadsheets.values.get({
-            spreadsheetId: SPREADSHEET_ID,
+        const response = await calendarSheets.spreadsheets.values.get({
+            spreadsheetId: CALENDAR_SPREADSHEET_ID,
             range: 'CalendarRules!A:C',
         });
 
@@ -137,13 +150,13 @@ async function updateCalendarRules(rules) {
         }
 
         // Clear and Write
-        await sheets.spreadsheets.values.clear({
-            spreadsheetId: SPREADSHEET_ID,
+        await calendarSheets.spreadsheets.values.clear({
+            spreadsheetId: CALENDAR_SPREADSHEET_ID,
             range: 'CalendarRules!A:C',
         });
 
-        await sheets.spreadsheets.values.update({
-            spreadsheetId: SPREADSHEET_ID,
+        await calendarSheets.spreadsheets.values.update({
+            spreadsheetId: CALENDAR_SPREADSHEET_ID,
             range: 'CalendarRules!A:C',
             valueInputOption: 'USER_ENTERED',
             resource: { values: newRows },
