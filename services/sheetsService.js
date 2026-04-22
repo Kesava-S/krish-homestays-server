@@ -26,8 +26,6 @@ const calendarSheets = google.sheets({ version: 'v4', auth: calendarAuth });
 const BOOKING_SPREADSHEET_ID = process.env.BOOKING_SPREADSHEET_ID;
 const CALENDAR_SPREADSHEET_ID = process.env.CALENDAR_SPREADSHEET_ID;
 
-console.log(BOOKING_SPREADSHEET_ID);
-
 
 // --- Bookings ---
 
@@ -37,8 +35,6 @@ async function getBookings() {
             spreadsheetId: BOOKING_SPREADSHEET_ID,
             range: "'Bookings Sheet'!A:S",
         });
-
-        console.log("Booking:\n", response.data.values);
 
         const rows = response.data.values;
         if (!rows || rows.length === 0) return [];

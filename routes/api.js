@@ -55,8 +55,6 @@ router.get('/calendar-data', async (req, res) => {
       fetchAirbnbBookings()
     ]);
 
-    console.log("airbnb----", airbnb);
-
     const websiteBookings = bookings
       .filter(b => b.status === 'booked')
       .map(b => ({
@@ -118,8 +116,6 @@ router.post('/create-payment-intent', async (req, res) => {
 router.post("/verify-payment", (req, res) => {
   const crypto = require("crypto");
 
-  console.log("Request data in verify:...", req.body);
-
   const {
     razorpay_order_id,
     razorpay_payment_id,
@@ -148,9 +144,6 @@ router.post("/verify-payment", (req, res) => {
 // Create booking
 router.post('/bookings', async (req, res) => {
   const { guest_name, email, phone, check_in_date, check_out_date, guests_count, adults, children, room_type, total_amount } = req.body;
-
-  console.log("Booking data:", req.body);
-
 
   if (!guest_name || !email || !check_in_date || !check_out_date) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -210,8 +203,6 @@ router.post('/bookings', async (req, res) => {
 
     // Create Calendar Event
     // await createCalendarEvent(savedBooking);
-
-    console.log(`Booking confirmed for ${email}`);
 
     res.status(201).json(savedBooking);
   } catch (err) {

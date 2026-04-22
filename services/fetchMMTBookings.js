@@ -12,9 +12,6 @@ async function fetchMMTBookings() {
 
         const summary = (event.summary || '').toLowerCase();
 
-        // Log this first to confirm MakeMyTrip's exact summary wording
-        // console.log('MMT event summary:', event.summary);
-
         const isRealBooking = summary.includes('reserved') || summary.includes('makemytrip') || summary.includes('confirmed');
         const isBlocked = summary.includes('not available') || summary.includes('blocked') || summary.includes('closed');
 

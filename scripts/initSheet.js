@@ -29,7 +29,6 @@ async function initSheet() {
         if (sheetExists) {
             console.log('CalendarRules sheet already exists.');
         } else {
-            console.log('Creating CalendarRules sheet...');
             await sheets.spreadsheets.batchUpdate({
                 spreadsheetId: SPREADSHEET_ID,
                 resource: {
@@ -44,7 +43,6 @@ async function initSheet() {
                     ],
                 },
             });
-            console.log('CalendarRules sheet created.');
 
             // Add Headers
             await sheets.spreadsheets.values.update({
@@ -55,7 +53,6 @@ async function initSheet() {
                     values: [['Date', 'Price', 'Status']],
                 },
             });
-            console.log('Headers added.');
         }
     } catch (error) {
         console.error('Error initializing sheet:', error);

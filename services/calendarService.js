@@ -41,8 +41,6 @@ async function createCalendarEvent(bookingDetails) {
             calendarId: process.env.CALENDAR_ID || 'primary', // 'primary' if using OAuth, or the specific email if shared
             resource: event,
         });
-
-        console.log('Event created: %s', response.data.htmlLink);
         return response.data;
     } catch (error) {
         console.error('Error creating calendar event:', error);

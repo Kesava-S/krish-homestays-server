@@ -188,7 +188,6 @@ async function sendConfirmationEmail(bookingDetails) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Confirmation email sent: ' + info.response);
     return info;
   } catch (error) {
     console.error('Error sending confirmation email:', error);
@@ -216,7 +215,6 @@ async function sendReceiptEmail(booking, payment = {}) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Receipt email sent: ' + info.response);
     return { success: true };
   } catch (error) {
     console.error('Error sending receipt email:', error);
