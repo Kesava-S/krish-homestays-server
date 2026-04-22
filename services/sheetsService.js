@@ -35,7 +35,7 @@ async function getBookings() {
     try {
         const response = await bookingSheets.spreadsheets.values.get({
             spreadsheetId: BOOKING_SPREADSHEET_ID,
-            range: "'Bookings Sheet'!A:R",
+            range: "'Bookings Sheet'!A:S",
         });
 
         console.log("Booking:\n", response.data.values);
@@ -43,24 +43,27 @@ async function getBookings() {
         const rows = response.data.values;
         if (!rows || rows.length === 0) return [];
 
-        // A  B     C           D       E      F              G               H            I       J         K       L             M           N       O                  P                Q                R
-        // Id Date  Guest Name  Email   Phone  Check In Date  Check Out Date  Guest Count  Adults  Children  Status  Total Amount  Payment ID  source  Confirmation Sent  Remainder Sent   Review Requested Notes
-        return rows.slice(1).map(row => ({
-            id: row[0],
-            date: row[1],
-            guest_name: row[2],
-            email: row[3],
-            phone: row[4],
-            check_in_date: row[5],
-            check_out_date: row[6],
-            guests_count: row[7] ? parseInt(row[7]) : null,
-            adults: row[8] ? parseInt(row[8]) : null,
-            children: row[9] ? parseInt(row[9]) : null,
-            status: row[10] || null,
-            total_amount: row[11] ? parseInt(row[11]) : null,
-            payment_id: row[12] || null,
-            source: row[13] || null,
-        }));
+        // A  B     C           D       E      F              G               H            I       J         K             L       M             N           O       P                  Q               R                S
+        // Id Date  Guest Name  Email   Phone  Check In Date  Check Out Date  Guest Count  Adults  Children  Booking Type  Status  Total Amount  Payment ID  source  Confirmation Sent  Remainder Sent  Review Requested Notes
+        return rows.slice(1)
+            .filter(row => (row[11] || '').toLowerCase() === 'booked')
+            .map(row => ({
+                id:            row[0],
+                date:          row[1],
+                guest_name:    row[2],
+                email:         row[3],
+                phone:         row[4],
+                check_in_date: row[5],
+                check_out_date: row[6],
+                guests_count:  row[7]  ? parseInt(row[7])  : null,
+                adults:        row[8]  ? parseInt(row[8])  : null,
+                children:      row[9]  ? parseInt(row[9])  : null,
+                booking_type:  row[10] || null,
+                status:        row[11] || null,
+                total_amount:  row[12] ? parseInt(row[12]) : null,
+                payment_id:    row[13] || null,
+                source:        row[14] || null,
+            }));
     } catch (error) {
         console.error('Error fetching bookings:', error);
         return [];
