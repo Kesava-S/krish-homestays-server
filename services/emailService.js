@@ -38,7 +38,7 @@ async function sendConfirmationEmail(bookingDetails) {
           <tr>
             <td style="background: linear-gradient(135deg, #1f6f43 0%, #2d9e60 100%); padding: 30px 40px; text-align:center;">
               <div style="margin-bottom: 16px;">
-                <img src="https://krishhomestays.com/logo.png" alt="Krish Homestays" width="120"
+                <img src="https://krishhomestays.com/assets/logo/logo.png" alt="Krish Homestays" width="120"
                   style="height:auto; display:inline-block; background:#ffffff; border-radius:10px; padding:8px 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);"
                   onerror="this.style.display='none'" />
               </div>
