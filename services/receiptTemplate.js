@@ -1,6 +1,11 @@
 function generateReceiptHTML(booking, payment = {}) {
   const date = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
   const year = new Date().getFullYear();
+  const roomLabel = booking.room_label ||
+    (booking.room_type === 'full villa' || booking.room_type === 'full' ? 'Full Villa' :
+     booking.room_type === 'half villa' || booking.room_type === 'partial' ? 'Half Villa' :
+     booking.room_type === 'remaining' ? 'Remaining Room' :
+     booking.room_type || 'Full Villa');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -102,9 +107,13 @@ function generateReceiptHTML(booking, payment = {}) {
                       <div style="font-size:10px;color:#999999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Check-in</div>
                       <div style="font-size:13px;color:#222222;font-weight:600;">&#128197; ${booking.check_in_date}</div>
                     </div>
-                    <div>
+                    <div style="margin-bottom:8px;">
                       <div style="font-size:10px;color:#999999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Check-out</div>
                       <div style="font-size:13px;color:#222222;font-weight:600;">&#128197; ${booking.check_out_date}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;color:#999999;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Room Type</div>
+                      <div style="font-size:13px;color:#1f6f43;font-weight:700;">&#127968; ${roomLabel}</div>
                     </div>
                   </td>
 
@@ -125,7 +134,7 @@ function generateReceiptHTML(booking, payment = {}) {
                 </thead>
                 <tbody>
                   <tr style="background:#f8fafb;border-bottom:1px solid #f0f0f0;">
-                    <td style="padding:12px 12px;color:#444444;">Homestay Accommodation</td>
+                    <td style="padding:12px 12px;color:#444444;">Homestay Accommodation<br/><span style="font-size:11px;color:#1f6f43;font-weight:600;">${roomLabel}</span></td>
                     <td style="padding:12px 12px;color:#444444;">${booking.check_in_date}</td>
                     <td style="padding:12px 12px;color:#444444;">${booking.check_out_date}</td>
                     <td style="padding:12px 12px;color:#444444;">${booking.adults ?? booking.guests_count}A${booking.children ? ` + ${booking.children}C` : ''}</td>
@@ -200,6 +209,19 @@ function generateReceiptHTML(booking, payment = {}) {
                   <tr><td style="padding-right:8px;vertical-align:top;">&bull;</td><td><strong>Within 4 days of check-in</strong> &mdash; 50% refund</td></tr>
                   <tr><td style="padding-right:8px;vertical-align:top;">&bull;</td><td><strong>No show</strong> &mdash; Full amount charged, no refund</td></tr>
                 </table>
+              </div>
+
+              <!-- ── Cancel Booking ── -->
+              <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:10px;padding:20px;text-align:center;margin-bottom:28px;">
+                <p style="margin:0 0 6px 0;font-size:14px;color:#333;font-weight:700;">Need to cancel your booking?</p>
+                <p style="margin:0 0 16px 0;font-size:12px;color:#888;line-height:1.6;">Click below to cancel your reservation and initiate a refund as per our policy.</p>
+                <a href="https://krishhomestays.com/cancellation"
+                   style="display:inline-block;background:#dc2626;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:13px;font-weight:bold;">
+                  &#128683; Cancel Booking
+                </a>
+                <p style="margin:12px 0 0 0;font-size:11px;color:#bbb;">
+                  Booking ID: <strong style="color:#dc2626;">${booking.booking_id}</strong>
+                </p>
               </div>
 
               <!-- ── Paid Stamp ── -->

@@ -61,6 +61,7 @@ router.get('/calendar-data', async (req, res) => {
         start: b.check_in_date,
         end: b.check_out_date,
         guests_count: b.guests_count,
+        booking_type: b.booking_type,
         type: 'website'
       }));
 

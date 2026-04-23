@@ -12,6 +12,12 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendConfirmationEmail(bookingDetails) {
+  const roomLabel = bookingDetails.room_label ||
+    (bookingDetails.room_type === 'full villa' || bookingDetails.room_type === 'full' ? 'Full Villa' :
+     bookingDetails.room_type === 'half villa' || bookingDetails.room_type === 'partial' ? 'Half Villa' :
+     bookingDetails.room_type === 'remaining' ? 'Remaining Room' :
+     bookingDetails.room_type || 'Full Villa');
+
   const mailOptions = {
     from: `"Krish Homestays" <${process.env.EMAIL_USER}>`,
     to: bookingDetails.email,
@@ -96,6 +102,10 @@ async function sendConfirmationEmail(bookingDetails) {
                       <tr>
                         <td style="color:#888; padding: 8px 0; border-bottom:1px solid #eef0f2;">👥 Guests</td>
                         <td style="font-weight:600; padding: 8px 0; border-bottom:1px solid #eef0f2;">${bookingDetails.adults ?? bookingDetails.guests_count} Adults${bookingDetails.children ? `, ${bookingDetails.children} Children` : ''}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#888; padding: 8px 0; border-bottom:1px solid #eef0f2;">🏠 Room Type</td>
+                        <td style="font-weight:600; color:#1f6f43; padding: 8px 0; border-bottom:1px solid #eef0f2;">${roomLabel}</td>
                       </tr>
                       <tr>
                         <td style="color:#888; padding: 10px 0 0 0;">💳 Amount Paid</td>
@@ -196,10 +206,15 @@ async function sendConfirmationEmail(bookingDetails) {
 }
 
 async function sendReceiptEmail(booking, payment = {}) {
-  // ✅ Generate PDF buffer
   const pdfBuffer = await generateReceiptPDF(booking, payment);
 
-  const mailOptions = {
+  const roomLabel = booking.room_label ||
+    (booking.room_type === 'full villa' || booking.room_type === 'full' ? 'Full Villa' :
+     booking.room_type === 'half villa' || booking.room_type === 'partial' ? 'Half Villa' :
+     booking.room_type === 'remaining' ? 'Remaining Room' :
+     booking.room_type || 'Full Villa');
+
+  const customerMail = {
     from: `"Krish Homestays" <${process.env.EMAIL_USER}>`,
     to: booking.email,
     subject: `Booking Confirmation & Receipt – ${booking.booking_id}`,
@@ -213,8 +228,65 @@ async function sendReceiptEmail(booking, payment = {}) {
     ]
   };
 
+  const adminMail = {
+    from: `"Krish Homestays" <${process.env.EMAIL_USER}>`,
+    to: 'admin@krishhomestays.com',
+    subject: `🏡 New Booking – ${booking.booking_id}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#f0f4f8;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+
+        <tr>
+          <td style="background:linear-gradient(135deg,#1f6f43 0%,#2d9e60 100%);padding:24px 36px;text-align:center;">
+            <p style="margin:0;color:#ffffff;font-size:20px;font-weight:bold;">🏡 New Booking Arrived</p>
+            <p style="margin:6px 0 0 0;color:#a8f0c6;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Krish Homestays – Internal Notification</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:28px 36px;">
+            <p style="margin:0 0 20px 0;font-size:15px;color:#333;">A new booking has been confirmed. Details below:</p>
+
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafb;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;color:#333;margin-bottom:20px;">
+              <tr><td style="padding:16px 20px;border-bottom:1px solid #eef0f2;"><strong style="color:#1f6f43;">📋 Booking ID</strong></td><td style="padding:16px 20px;border-bottom:1px solid #eef0f2;font-weight:700;color:#1f6f43;">${booking.booking_id}</td></tr>
+              <tr><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;color:#666;">👤 Guest Name</td><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;font-weight:600;">${booking.guest_name}</td></tr>
+              <tr><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;color:#666;">📧 Email</td><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;">${booking.email}</td></tr>
+              <tr><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;color:#666;">📱 Phone</td><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;">${booking.phone}</td></tr>
+              <tr><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;color:#666;">📅 Check-in</td><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;">${booking.check_in_date}</td></tr>
+              <tr><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;color:#666;">📅 Check-out</td><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;">${booking.check_out_date}</td></tr>
+              <tr><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;color:#666;">👥 Guests</td><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;">${booking.adults ?? booking.guests_count} Adults${booking.children ? `, ${booking.children} Children` : ''}</td></tr>
+              <tr><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;color:#666;">🏠 Room Type</td><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;font-weight:700;color:#1f6f43;">${roomLabel}</td></tr>
+              <tr><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;color:#666;">💳 Amount Paid</td><td style="padding:12px 20px;border-bottom:1px solid #eef0f2;font-weight:700;font-size:16px;color:#1f6f43;">₹${booking.total_amount}</td></tr>
+              <tr><td style="padding:12px 20px;color:#666;">🔑 Payment ID</td><td style="padding:12px 20px;font-size:12px;word-break:break-all;">${payment.payment_id || '—'}</td></tr>
+            </table>
+
+            <p style="font-size:13px;color:#888;margin:0;">This is an automated internal notification. The customer's receipt has been sent to <strong>${booking.email}</strong>.</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background:#f8fafb;border-top:1px solid #e2e8f0;padding:16px 36px;text-align:center;">
+            <p style="margin:0;font-size:11px;color:#aaa;">© ${new Date().getFullYear()} Krish Homestays – Internal Use Only</p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+  };
+
   try {
-    const info = await transporter.sendMail(mailOptions);
+    await Promise.all([
+      transporter.sendMail(customerMail),
+      transporter.sendMail(adminMail)
+    ]);
     return { success: true };
   } catch (error) {
     console.error('Error sending receipt email:', error);
