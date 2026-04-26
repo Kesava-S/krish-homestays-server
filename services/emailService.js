@@ -107,9 +107,28 @@ async function sendConfirmationEmail(bookingDetails) {
                         <td style="color:#888; padding: 8px 0; border-bottom:1px solid #eef0f2;">🏠 Room Type</td>
                         <td style="font-weight:600; color:#1f6f43; padding: 8px 0; border-bottom:1px solid #eef0f2;">${roomLabel}</td>
                       </tr>
+                      ${isAdvance ? `
+                      <tr>
+                        <td style="color:#888; padding: 8px 0; border-bottom:1px solid #eef0f2;">💰 Total Amount</td>
+                        <td style="font-weight:600; padding: 8px 0; border-bottom:1px solid #eef0f2;">₹ ${booking.total_amount}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#888; padding: 8px 0; border-bottom:1px solid #eef0f2;">✅ Advance Paid</td>
+                        <td style="font-weight:bold; color:#1f6f43; padding: 8px 0; border-bottom:1px solid #eef0f2;">₹ ${advancePaid}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#b45309; font-weight:600; padding: 8px 0; border-bottom:1px solid #eef0f2;">⚠️ Remaining Balance</td>
+                        <td style="font-weight:bold; color:#b45309; padding: 8px 0; border-bottom:1px solid #eef0f2;">₹ ${remaining} <span style="font-size:11px;font-weight:400;">(due at check-in)</span></td>
+                      </tr>
+                      ` : `
                       <tr>
                         <td style="color:#888; padding: 10px 0 0 0;">💳 Amount Paid</td>
                         <td style="font-weight:bold; font-size:17px; color:#1f6f43; padding: 10px 0 0 0;">₹ ${bookingDetails.total_amount}</td>
+                      </tr>
+                      `}
+                      <tr>
+                        <td style="color:#888; padding: 8px 0 0 0;">💳 Payment Method</td>
+                        <td style="font-weight:600; color:#1f6f43; padding: 8px 0 0 0;">${isUPI ? 'UPI' : 'Cash'}${isUPI && payment.upi_transaction_id ? ` &nbsp;<span style="font-size:11px;color:#555;font-weight:400;">Txn: ${payment.upi_transaction_id}</span>` : ''}</td>
                       </tr>
                     </table>
                   </td>
@@ -213,6 +232,11 @@ async function sendReceiptEmail(booking, payment = {}) {
      booking.room_type === 'half villa' || booking.room_type === 'partial' ? 'Half Villa' :
      booking.room_type === 'remaining' ? 'Remaining Room' :
      booking.room_type || 'Full Villa');
+
+  const isAdvance  = payment.payment_type === 'advance' && payment.advance_amount;
+  const advancePaid = isAdvance ? Number(payment.advance_amount) : 0;
+  const remaining   = isAdvance ? Number(booking.total_amount) - advancePaid : 0;
+  const isUPI       = payment.payment_method === 'upi';
 
   const customerMail = {
     from: `"Krish Homestays" <${process.env.EMAIL_USER}>`,

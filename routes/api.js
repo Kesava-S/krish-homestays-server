@@ -172,7 +172,7 @@ router.post('/bookings', async (req, res) => {
     while (currentDate < newEnd) {
       const dateStr = currentDate.toISOString().split('T')[0];
       const rule = rules.find(r => r.date === dateStr);
-      if (rule && rule.status === 'blocked') {
+      if (rule && (rule.status === 'blocked' || rule.status === 'booked')) {
         hasBlockOverlap = true;
         break;
       }
@@ -213,21 +213,15 @@ router.post('/bookings', async (req, res) => {
 });
 
 
-const htmlToPdf = require('html-pdf-node');
-const path = require('path')
-const fs = require('fs')
+const path = require('path');
+const { generateReceiptPDF } = require('../services/pdfService');
 router.use('/receipts', express.static(path.join(__dirname, 'receipts')));
 
 router.post('/generate-receipt', async (req, res) => {
   try {
     const { booking, payment } = req.body;
 
-    const html = generateReceiptHTML(booking, payment || {});
-
-    const pdfBuffer = await htmlToPdf.generatePdf(
-      { content: html },
-      { format: 'A4', printBackground: true }
-    );
+    const pdfBuffer = await generateReceiptPDF(booking, payment || {});
 
     res.json({
       success: true,

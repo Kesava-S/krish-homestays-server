@@ -165,33 +165,73 @@ function generateReceiptPDF(booking, payment = {}) {
     // ─────────────────────────────────────────
     // PAYMENT SUMMARY
     // ─────────────────────────────────────────
+    const isAdvance = payment.payment_type === 'advance' && payment.advance_amount;
+    const advancePaid = isAdvance ? Number(payment.advance_amount) : 0;
+    const remaining   = isAdvance ? Number(booking.total_amount) - advancePaid : 0;
+    const amber2      = '#f59e0b';
+    const amberDeep   = '#b45309';
+    const amberBg2    = '#fffbeb';
+    const amberBdr2   = '#fcd34d';
+
     doc.fillColor(green).fontSize(9).font('Helvetica-Bold')
        .text('PAYMENT SUMMARY', M, cy, { characterSpacing: 1 });
     doc.rect(M, cy + 12, CW, 1).fill(borderGreen);
     cy += 16;
 
-    const summaryBox = [
-      ['Subtotal',      `Rs.${booking.total_amount}`],
-      ['Taxes & Fees',  'Included'],
-      ['Discount',      '—'],
-    ];
+    const summaryBox = isAdvance
+      ? [
+          ['Total Stay Amount',  `Rs.${booking.total_amount}`],
+          ['Advance Paid',       `Rs.${advancePaid}`],
+          ['Remaining Balance',  `Rs.${remaining}`],
+          ['Taxes & Fees',       'Included'],
+        ]
+      : [
+          ['Subtotal',     `Rs.${booking.total_amount}`],
+          ['Taxes & Fees', 'Included'],
+          ['Discount',     '—'],
+        ];
+
     doc.roundedRect(M, cy, CW, summaryBox.length * 20 + 30, 6)
        .fill(lightGray).stroke(borderGray);
 
     summaryBox.forEach(([label, val], i) => {
       const ry = cy + 8 + i * 20;
       if (i > 0) doc.rect(M + 8, ry - 1, CW - 16, 0.5).fill(borderGray);
-      doc.fillColor(gray).fontSize(9).font('Helvetica').text(label, M + 12, ry + 4);
-      doc.fillColor('#333').text(val, M, ry + 4, { width: CW - 12, align: 'right' });
+      const isRemainder = label === 'Remaining Balance';
+      doc.fillColor(isRemainder ? amberDeep : gray).fontSize(9).font('Helvetica')
+         .text(label, M + 12, ry + 4);
+      doc.fillColor(isRemainder ? amberDeep : '#333').font(isRemainder ? 'Helvetica-Bold' : 'Helvetica')
+         .text(val, M, ry + 4, { width: CW - 12, align: 'right' });
     });
     cy += summaryBox.length * 20 + 12;
 
-    // Total row
-    doc.roundedRect(M, cy, CW, 28, 6).fill(green);
-    doc.fillColor('white').fontSize(11).font('Helvetica-Bold')
-       .text('TOTAL AMOUNT PAID', M + 12, cy + 8);
-    doc.text(`Rs.${booking.total_amount}`, M, cy + 8, { width: CW - 12, align: 'right' });
+    // Total row — green for full payment, amber for advance
+    if (isAdvance) {
+      doc.roundedRect(M, cy, CW, 28, 6).fill(amber2);
+      doc.fillColor('white').fontSize(11).font('Helvetica-Bold')
+         .text('ADVANCE PAID', M + 12, cy + 8);
+      doc.text(`Rs.${advancePaid}`, M, cy + 8, { width: CW - 12, align: 'right' });
+    } else {
+      doc.roundedRect(M, cy, CW, 28, 6).fill(green);
+      doc.fillColor('white').fontSize(11).font('Helvetica-Bold')
+         .text('TOTAL AMOUNT PAID', M + 12, cy + 8);
+      doc.text(`Rs.${booking.total_amount}`, M, cy + 8, { width: CW - 12, align: 'right' });
+    }
     cy += 36;
+
+    // Balance due banner — shown only for advance payments
+    if (isAdvance) {
+      const bannerH = 48;
+      doc.roundedRect(M, cy, CW, bannerH, 6).fill(amberBg2).stroke(amberBdr2);
+      doc.fillColor('#92400e').fontSize(8.5).font('Helvetica-Bold')
+         .text('BALANCE DUE AT CHECK-IN', M + 12, cy + 8, { characterSpacing: 0.5 });
+      doc.fillColor(amberDeep).fontSize(9).font('Helvetica')
+         .text(
+           `Please pay the remaining balance of Rs.${remaining} before or during check-in on ${booking.check_in_date}.`,
+           M + 12, cy + 22, { width: CW - 24 }
+         );
+      cy += bannerH + 10;
+    }
 
     // ─────────────────────────────────────────
     // TRANSACTION DETAILS (2-column grid)
@@ -201,12 +241,13 @@ function generateReceiptPDF(booking, payment = {}) {
     doc.rect(M, cy + 12, CW, 1).fill(borderGreen);
     cy += 16;
 
+    const isUPI = payment.payment_method === 'upi';
     const txItems = [
-      ['Payment ID',      payment.payment_id || '—'],
-      ['Order ID',        payment.order_id   || '—'],
-      ['Payment Method',  payment.gateway    || 'Razorpay'],
-      ['Payment Status',  'PAID'],
-      ['Currency',        payment.currency   || 'INR'],
+      ['Payment Method',  isUPI ? 'UPI' : 'Cash'],
+      ...(isUPI ? [['UPI Transaction ID', payment.upi_transaction_id || '—']] : []),
+      ['Payment Type',    isAdvance ? 'Advance' : 'Full Payment'],
+      ['Payment Status',  isAdvance ? 'ADVANCE PAID' : 'PAID IN FULL'],
+      ['Currency',        payment.currency || 'INR'],
       ['Date',            new Date().toLocaleDateString('en-IN')],
     ];
 
@@ -220,7 +261,7 @@ function generateReceiptPDF(booking, payment = {}) {
       const iy = cy + 10 + row * 36;
       doc.fillColor('#888').fontSize(7.5).font('Helvetica')
          .text(label.toUpperCase(), ix, iy, { characterSpacing: 0.4 });
-      const isStatus = label === 'Payment Status';
+      const isStatus = label === 'Payment Status' || label === 'Payment Type' || label === 'Payment Method';
       doc.fillColor(isStatus ? green : '#222').fontSize(9)
          .font('Helvetica-Bold').text(val, ix, iy + 10, { width: CW / 2 - 20 });
     });
@@ -248,9 +289,9 @@ function generateReceiptPDF(booking, payment = {}) {
     // PAID STAMP
     // ─────────────────────────────────────────
     doc.roundedRect(M, cy, CW, 26, 13)
-       .dash(4, { space: 3 }).stroke(borderGreen).undash();
-    doc.fillColor(green).fontSize(11).font('Helvetica-Bold')
-       .text('✓   PAID IN FULL   ✓', M, cy + 7, { width: CW, align: 'center' });
+       .dash(4, { space: 3 }).stroke(isAdvance ? amberBdr2 : borderGreen).undash();
+    doc.fillColor(isAdvance ? amber2 : green).fontSize(11).font('Helvetica-Bold')
+       .text(isAdvance ? '✓   ADVANCE RECEIVED   ✓' : '✓   PAID IN FULL   ✓', M, cy + 7, { width: CW, align: 'center' });
     cy += 34;
 
     // ─────────────────────────────────────────

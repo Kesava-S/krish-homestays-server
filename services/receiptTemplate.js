@@ -7,6 +7,11 @@ function generateReceiptHTML(booking, payment = {}) {
      booking.room_type === 'remaining' ? 'Remaining Room' :
      booking.room_type || 'Full Villa');
 
+  const isAdvance = payment.payment_type === 'advance' && payment.advance_amount;
+  const advancePaid = isAdvance ? Number(payment.advance_amount) : 0;
+  const remaining   = isAdvance ? Number(booking.total_amount) - advancePaid : 0;
+  const isUPI       = payment.payment_method === 'upi';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -51,7 +56,7 @@ function generateReceiptHTML(booking, payment = {}) {
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td valign="middle">
-                    <span style="display:inline-block;background:#1f6f43;color:#ffffff;font-size:12px;font-weight:bold;padding:6px 16px;border-radius:20px;letter-spacing:1px;">&#10003;&nbsp;&nbsp;PAYMENT CONFIRMED</span>
+                    <span style="display:inline-block;background:${isAdvance ? '#d97706' : '#1f6f43'};color:#ffffff;font-size:12px;font-weight:bold;padding:6px 16px;border-radius:20px;letter-spacing:1px;">&#10003;&nbsp;&nbsp;${isAdvance ? 'ADVANCE RECEIVED' : 'PAYMENT CONFIRMED'}</span>
                   </td>
                   <td valign="middle" align="right" style="font-size:13px;color:#555555;">
                     Booking Ref:&nbsp;<strong style="color:#1f6f43;">${booking.booking_id}</strong>
@@ -145,7 +150,29 @@ function generateReceiptHTML(booking, payment = {}) {
 
               <!-- ── Payment Summary ── -->
               <div style="font-size:10px;font-weight:bold;color:#1f6f43;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #e2e8f0;">&#128179; Payment Summary</div>
-              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafb;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:28px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafb;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:${isAdvance ? '12px' : '28px'};">
+                ${isAdvance ? `
+                <tr>
+                  <td style="padding:12px 20px;font-size:13px;color:#555555;border-bottom:1px solid #eef0f2;">Total Stay Amount</td>
+                  <td style="padding:12px 20px;font-size:13px;color:#555555;border-bottom:1px solid #eef0f2;text-align:right;">&#8377;${booking.total_amount}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 20px;font-size:13px;color:#555555;border-bottom:1px solid #eef0f2;">Advance Paid</td>
+                  <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#1f6f43;border-bottom:1px solid #eef0f2;text-align:right;">&#8377;${advancePaid}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 20px;font-size:13px;font-weight:600;color:#b45309;border-bottom:1px solid #eef0f2;">Remaining Balance</td>
+                  <td style="padding:12px 20px;font-size:13px;font-weight:700;color:#b45309;border-bottom:1px solid #eef0f2;text-align:right;">&#8377;${remaining}</td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 20px;font-size:13px;color:#555555;">Taxes &amp; Fees</td>
+                  <td style="padding:12px 20px;font-size:13px;color:#555555;text-align:right;">Included</td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 20px;font-size:15px;font-weight:bold;color:#ffffff;background:#d97706;">ADVANCE PAID</td>
+                  <td style="padding:16px 20px;font-size:15px;font-weight:bold;color:#ffffff;background:#d97706;text-align:right;">&#8377;${advancePaid}</td>
+                </tr>
+                ` : `
                 <tr>
                   <td style="padding:12px 20px;font-size:13px;color:#555555;border-bottom:1px solid #eef0f2;">Subtotal</td>
                   <td style="padding:12px 20px;font-size:13px;color:#555555;border-bottom:1px solid #eef0f2;text-align:right;">&#8377;${booking.total_amount}</td>
@@ -162,7 +189,24 @@ function generateReceiptHTML(booking, payment = {}) {
                   <td style="padding:16px 20px;font-size:15px;font-weight:bold;color:#ffffff;background:#1f6f43;">TOTAL AMOUNT PAID</td>
                   <td style="padding:16px 20px;font-size:15px;font-weight:bold;color:#ffffff;background:#1f6f43;text-align:right;">&#8377;${booking.total_amount}</td>
                 </tr>
+                `}
               </table>
+
+              ${isAdvance ? `
+              <!-- ── Balance Due Banner ── -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;overflow:hidden;margin-bottom:28px;">
+                <tr>
+                  <td style="padding:10px 20px;border-bottom:1px solid #fcd34d;">
+                    <span style="font-size:10px;font-weight:bold;color:#92400e;letter-spacing:1.5px;text-transform:uppercase;">&#9888;&#65039; Balance Due at Check-in</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:12px 20px;font-size:13px;color:#78350f;line-height:1.7;">
+                    Please pay the remaining balance of <strong style="color:#b45309;">&#8377;${remaining}</strong> before or during check-in on <strong>${booking.check_in_date}</strong>.
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
 
               <!-- ── Transaction Details ── -->
               <div style="background:#f0faf4;border:1px solid #d4edda;border-radius:10px;padding:18px 20px;margin-bottom:28px;">
@@ -170,33 +214,38 @@ function generateReceiptHTML(booking, payment = {}) {
                 <table width="100%" cellpadding="0" cellspacing="0" border="0">
                   <tr valign="top">
                     <td width="50%" style="padding-bottom:12px;">
-                      <div style="font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Payment ID</div>
-                      <div style="font-size:12px;color:#222222;font-weight:600;word-break:break-all;">${payment.payment_id || '&mdash;'}</div>
+                      <div style="font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Payment Method</div>
+                      <div style="font-size:12px;color:#1f6f43;font-weight:700;">${isUPI ? 'UPI' : 'Cash'}</div>
                     </td>
                     <td width="50%" style="padding-bottom:12px;">
-                      <div style="font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Order ID</div>
-                      <div style="font-size:12px;color:#222222;font-weight:600;word-break:break-all;">${payment.order_id || '&mdash;'}</div>
+                      <div style="font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Payment Type</div>
+                      <div style="font-size:12px;color:#1f6f43;font-weight:700;">${isAdvance ? 'Advance' : 'Full Payment'}</div>
                     </td>
                   </tr>
+                  ${isUPI ? `
                   <tr valign="top">
-                    <td width="50%" style="padding-bottom:12px;">
-                      <div style="font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Payment Method</div>
-                      <div style="font-size:12px;color:#222222;font-weight:600;">${payment.gateway || payment.method || 'Razorpay'}</div>
+                    <td width="50%" style="padding-bottom:12px;" colspan="2">
+                      <div style="font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">UPI Transaction ID</div>
+                      <div style="font-size:12px;color:#222222;font-weight:600;word-break:break-all;">${payment.upi_transaction_id || '&mdash;'}</div>
                     </td>
+                  </tr>
+                  ` : ''}
+                  <tr valign="top">
                     <td width="50%" style="padding-bottom:12px;">
                       <div style="font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Payment Status</div>
-                      <div style="font-size:12px;color:#1f6f43;font-weight:600;">&#10003; PAID</div>
+                      <div style="font-size:12px;color:${isAdvance ? '#d97706' : '#1f6f43'};font-weight:700;">&#10003; ${isAdvance ? 'ADVANCE PAID' : 'PAID IN FULL'}</div>
                     </td>
-                  </tr>
-                  <tr valign="top">
-                    <td width="50%">
+                    <td width="50%" style="padding-bottom:12px;">
                       <div style="font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Currency</div>
                       <div style="font-size:12px;color:#222222;font-weight:600;">${payment.currency || 'INR'}</div>
                     </td>
+                  </tr>
+                  <tr valign="top">
                     <td width="50%">
                       <div style="font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Date</div>
                       <div style="font-size:12px;color:#222222;font-weight:600;">${new Date().toLocaleDateString('en-IN')}</div>
                     </td>
+                    <td width="50%"></td>
                   </tr>
                 </table>
               </div>
@@ -225,8 +274,8 @@ function generateReceiptHTML(booking, payment = {}) {
               </div>
 
               <!-- ── Paid Stamp ── -->
-              <div style="text-align:center;margin-bottom:28px;padding:10px;border:2px dashed #d4edda;border-radius:8px;color:#1f6f43;font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;">
-                &#10003;&nbsp;&nbsp;Paid in Full&nbsp;&nbsp;&#10003;
+              <div style="text-align:center;margin-bottom:28px;padding:10px;border:2px dashed ${isAdvance ? '#fcd34d' : '#d4edda'};border-radius:8px;color:${isAdvance ? '#d97706' : '#1f6f43'};font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;">
+                &#10003;&nbsp;&nbsp;${isAdvance ? 'Advance Received' : 'Paid in Full'}&nbsp;&nbsp;&#10003;
               </div>
 
               <!-- ── Note ── -->
