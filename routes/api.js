@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getBookings, addBooking, getCalendarRules, updateCalendarRules } = require('../services/sheetsService');
+const { getBookings, getAllBookings, addBooking, getCalendarRules, updateCalendarRules } = require('../services/sheetsService');
 const { createCalendarEvent } = require('../services/calendarService');
 const { sendConfirmationEmail, sendReceiptEmail } = require('../services/emailService');
 const { createPaymentIntent } = require('../services/paymentService');
@@ -90,6 +90,17 @@ router.get('/calendar-data', async (req, res) => {
 });
 
 
+
+// Get all bookings (Admin)
+router.get('/admin/bookings', async (req, res) => {
+  try {
+    const bookings = await getAllBookings();
+    res.json(bookings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 // Update Calendar Rules (Admin)
 router.post('/admin/rules', async (req, res) => {

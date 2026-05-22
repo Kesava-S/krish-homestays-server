@@ -102,6 +102,43 @@ async function addBooking(booking) {
     }
 }
 
+async function getAllBookings() {
+    try {
+        const response = await bookingSheets.spreadsheets.values.get({
+            spreadsheetId: BOOKING_SPREADSHEET_ID,
+            range: "'Bookings Sheet'!A:S",
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) return [];
+
+        return rows.slice(1).map(row => ({
+            'Booking Id':        row[0]  || '',
+            'Date':              row[1]  || '',
+            'Guest Name':        row[2]  || '',
+            'Email':             row[3]  || '',
+            'Phone Number':      row[4]  || '',
+            'Check In Date':     row[5]  || '',
+            'Check Out Date':    row[6]  || '',
+            'Guest Count':       row[7]  || '',
+            'Guest Adults':      row[8]  || '',
+            'Guest Children':    row[9]  || '',
+            'Booking Type':      row[10] || '',
+            'Status':            row[11] || '',
+            'Total Amount':      row[12] || '',
+            'Payment ID':        row[13] || '',
+            'source':            row[14] || '',
+            'Confirmation Sent': row[15] || '',
+            'Remainder Sent':    row[16] || '',
+            'Review Requested':  row[17] || '',
+            'Notes':             row[18] || '',
+        }));
+    } catch (error) {
+        console.error('Error fetching all bookings:', error);
+        return [];
+    }
+}
+
 // --- Calendar Rules (Prices & Blocks) ---
 
 async function getCalendarRules() {
@@ -175,4 +212,4 @@ async function updateCalendarRules(rules) {
     }
 }
 
-module.exports = { getBookings, addBooking, getCalendarRules, updateCalendarRules };
+module.exports = { getBookings, getAllBookings, addBooking, getCalendarRules, updateCalendarRules };
