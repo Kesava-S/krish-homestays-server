@@ -5,7 +5,8 @@ const { createCalendarEvent } = require('../services/calendarService');
 const { sendConfirmationEmail, sendReceiptEmail } = require('../services/emailService');
 const { createPaymentIntent } = require('../services/paymentService');
 
-const { fetchAirbnbBookings } = require('../services/fetchAirbnbBookings')
+const { fetchAirbnbBookings } = require('../services/fetchAirbnbBookings');
+const { fetchMMTBookings } = require('../services/fetchMMTBookings');
 
 // Admin Login
 router.post('/admin/login', (req, res) => {
@@ -49,10 +50,11 @@ router.post('/admin/login', (req, res) => {
 
 router.get('/calendar-data', async (req, res) => {
   try {
-    const [bookings, rules, airbnb] = await Promise.all([
+    const [bookings, rules, airbnb, mmt] = await Promise.all([
       getBookings(),
       getCalendarRules(),
-      fetchAirbnbBookings()
+      fetchAirbnbBookings().catch(() => []),
+      fetchMMTBookings().catch(() => []),
     ]);
 
     const websiteBookings = bookings
@@ -67,7 +69,8 @@ router.get('/calendar-data', async (req, res) => {
 
     const allBookedDates = [
       ...websiteBookings,
-      ...airbnb
+      ...airbnb,
+      ...mmt,
     ];
 
     const ruleData = rules.reduce((acc, rule) => {
@@ -90,6 +93,71 @@ router.get('/calendar-data', async (req, res) => {
 });
 
 
+
+// Website iCal feed — give this URL to MMT / any OTA to import website bookings
+router.get('/calendar.ics', async (req, res) => {
+  try {
+    const [bookings, rules] = await Promise.all([getBookings(), getCalendarRules()]);
+
+    const now = new Date().toISOString().replace(/[-:.]/g, '').slice(0, 15) + 'Z';
+
+    const toICalDate = (dateStr) => String(dateStr).split('T')[0].replace(/-/g, '');
+
+    const events = [];
+
+    // Confirmed website bookings
+    for (const b of bookings) {
+      if (b.status !== 'booked') continue;
+      const uid = `${b.id || b.date}-website@krishhomestays.com`;
+      events.push([
+        'BEGIN:VEVENT',
+        `DTSTART;VALUE=DATE:${toICalDate(b.check_in_date)}`,
+        `DTEND;VALUE=DATE:${toICalDate(b.check_out_date)}`,
+        `SUMMARY:Booked`,
+        `UID:${uid}`,
+        `DTSTAMP:${now}`,
+        'END:VEVENT',
+      ].join('\r\n'));
+    }
+
+    // Admin-blocked dates from calendar rules
+    for (const rule of rules) {
+      if (rule.status !== 'blocked' && rule.status !== 'booked') continue;
+      const uid = `rule-${rule.date}@krishhomestays.com`;
+      const next = new Date(rule.date);
+      next.setDate(next.getDate() + 1);
+      const endDate = next.toISOString().split('T')[0].replace(/-/g, '');
+      events.push([
+        'BEGIN:VEVENT',
+        `DTSTART;VALUE=DATE:${toICalDate(rule.date)}`,
+        `DTEND;VALUE=DATE:${endDate}`,
+        `SUMMARY:Not Available`,
+        `UID:${uid}`,
+        `DTSTAMP:${now}`,
+        'END:VEVENT',
+      ].join('\r\n'));
+    }
+
+    const icsBody = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Krish Homestays//Website Calendar//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'X-WR-CALNAME:Krish Homestays',
+      ...events,
+      'END:VCALENDAR',
+    ].join('\r\n');
+
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', 'inline; filename="krish-homestays.ics"');
+    res.send(icsBody);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error generating calendar');
+  }
+});
 
 // Get all bookings (Admin)
 router.get('/admin/bookings', async (req, res) => {

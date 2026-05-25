@@ -9,19 +9,15 @@ async function fetchMMTBookings() {
         const event = events[key];
 
         if (event.type !== 'VEVENT') continue;
+        if (!event.start || !event.end) continue;
 
-        const summary = (event.summary || '').toLowerCase();
-
-        const isRealBooking = summary.includes('reserved') || summary.includes('makemytrip') || summary.includes('confirmed');
-        const isBlocked = summary.includes('not available') || summary.includes('blocked') || summary.includes('closed');
-
-        if (isRealBooking && !isBlocked) {
-            bookings.push({
-                start: event.start.toISOString().split('T')[0],
-                end: event.end.toISOString().split('T')[0],
-                type: 'makemytrip'
-            });
-        }
+        // Treat every event in the MMT calendar as a blocked period.
+        // MMT only exports events for occupied dates — there are no "available" events.
+        bookings.push({
+            start: event.start.toISOString().split('T')[0],
+            end: event.end.toISOString().split('T')[0],
+            type: 'makemytrip'
+        });
     }
 
     return bookings;
