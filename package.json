@@ -13,22 +13,28 @@
   "type": "commonjs",
   "dependencies": {
     "@sparticuz/chromium": "^143.0.4",
+    "@supabase/supabase-js": "^2.117.0",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "fs": "^0.0.1-security",
     "googleapis": "^166.0.0",
-    "html-pdf-node": "^1.0.8",
+    "html-pdf-node": "^1.0.7",
     "ical": "^0.8.0",
     "node-fetch": "^2.7.0",
     "node-ical": "^0.25.3",
-    "nodemailer": "^7.0.10",
+    "nodemailer": "^10.0.10",
     "nodemon": "^3.1.11",
     "pdfkit": "^0.17.2",
     "pg": "^8.16.3",
-    "puppeteer-core": "^24.40.0",
+    "puppeteer": "^25.11.0",
+    "puppeteer-core": "^25.11.0",
     "razorpay": "^2.9.6",
     "stripe": "^20.0.0"
+  },
+  "overrides": {
+    "puppeteer": "^25.11.0",
+    "inline-css": "^4.0.3"
   }
 }

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getBookings, getAllBookings, addBooking, getCalendarRules, updateCalendarRules } = require('../services/sheetsService');
+const { getBookings, getAllBookings, addBooking, getCalendarRules, updateCalendarRules, getBookingById, updateBookingStatus, updateBooking, blockDatesForBooking, addReview } = require('../services/supabaseService');
 const { createCalendarEvent } = require('../services/calendarService');
 const { sendConfirmationEmail, sendReceiptEmail } = require('../services/emailService');
 const { createPaymentIntent } = require('../services/paymentService');
@@ -58,7 +58,7 @@ router.get('/calendar-data', async (req, res) => {
     ]);
 
     const websiteBookings = bookings
-      .filter(b => b.status === 'booked')
+      .filter(b => b.status === 'booked' || b.status === 'confirmed')
       .map(b => ({
         start: b.check_in_date,
         end: b.check_out_date,
@@ -107,7 +107,7 @@ router.get('/calendar.ics', async (req, res) => {
 
     // Confirmed website bookings
     for (const b of bookings) {
-      if (b.status !== 'booked') continue;
+      if (b.status !== 'booked' && b.status !== 'confirmed') continue;
       const uid = `${b.id || b.date}-website@krishhomestays.com`;
       events.push([
         'BEGIN:VEVENT',
@@ -278,6 +278,11 @@ router.post('/bookings', async (req, res) => {
 
     const savedBooking = await addBooking(newBooking);
 
+    // Sync to calendar_rules
+    if (savedBooking && savedBooking.status === 'confirmed') {
+        await blockDatesForBooking(savedBooking);
+    }
+
     // Send Email
     // await sendConfirmationEmail(savedBooking);
 
@@ -334,19 +339,133 @@ router.post('/send-receipt', async (req, res) => {
 
 
 
-// router.get("/test-sheet", async (req, res) => {
-//     try {
-//         const result = await sheets.spreadsheets.values.get({
-//             spreadsheetId: "1IywqWahk1IgrDT3m2bgmybqDT55OlPi-EYAOS_FJBDE",
-//             range: "Bookings!A1"
-//         });
+// --- N8N Webhook Replacements ---
 
-//         res.json(result.data);
-//     } catch (err) {
-//         console.error(err);
-//         res.status(500).json({ error: err.message });
-//     }
-// });
+router.get('/booking-enquiry', async (req, res) => {
+  try {
+    const booking_id = req.query.booking_id;
+    if (!booking_id) return res.status(400).json({ success: false, error: 'Missing booking_id' });
+    
+    const booking = await getBookingById(booking_id);
+    if (!booking) return res.status(404).json({ success: false, error: 'Booking not found' });
+    
+    res.json({ success: true, data: booking });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/registration', async (req, res) => {
+  try {
+    const payload = req.body;
+    let booking;
+    
+    // N8N payload could be nested { booking: {}, payment: {}, meta: {} } or flat
+    if (payload.booking) {
+       // It's an update/confirm from payment
+       const bookingData = payload.booking;
+       const paymentData = payload.payment;
+       
+       booking = await updateBooking(bookingData.booking_id, {
+           status: paymentData.status === 'booked' ? 'confirmed' : 'failed',
+           payment_id: paymentData.payment_id,
+           total_amount: paymentData.amount,
+           source: payload.meta?.source || 'website'
+       });
+       
+    } else {
+       // It's a new enquiry
+       booking = await addBooking(payload);
+    }
+    
+    // Sync to calendar_rules
+    if (booking && booking.status === 'confirmed') {
+        await blockDatesForBooking(booking);
+    }
+    
+    res.json({ success: true, data: booking });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/review', async (req, res) => {
+  try {
+    const { bookingId, experience, rating, source, timestamp } = req.body;
+    
+    await addReview({
+        booking_id: bookingId,
+        experience,
+        rating,
+        source: source || 'website',
+        created_at: timestamp || new Date().toISOString()
+    });
+    
+    res.json({ success: true, message: 'Review submitted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.get('/booking-cancellation', async (req, res) => {
+  try {
+    const booking_id = req.query.booking_id;
+    if (!booking_id) return res.status(400).json({ success: false, error: 'Missing booking_id' });
+    
+    const booking = await getBookingById(booking_id);
+    if (!booking) return res.status(404).json({ success: false, error: 'Booking not found' });
+    
+    // Format for Cancellation component which expects specific N8N map keys
+    res.json({ 
+        success: true, 
+        data: {
+            'Guest Name': booking['Guest Name'],
+            'Check In Date': booking['Check In Date'],
+            'Check Out Date': booking['Check Out Date'],
+            'Total Amount': booking['Total Amount'],
+            'Status': booking['Status']
+        }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/cancel-booking', async (req, res) => {
+  try {
+    const { bookingId, reason, timestamp } = req.body;
+    
+    const booking = await updateBookingStatus(bookingId, 'cancelled');
+    
+    // Might want to save reason to notes or a separate table if needed
+    if (reason) {
+        await updateBooking(bookingId, { notes: `Cancelled: ${reason}` });
+    }
+    
+    res.json({ success: true, message: 'Booking cancelled' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/update-booking', async (req, res) => {
+  try {
+    const { booking_id, updates } = req.body;
+    
+    const booking = await updateBooking(booking_id, updates);
+    
+    res.json({ success: true, data: booking });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 
 module.exports = router;
