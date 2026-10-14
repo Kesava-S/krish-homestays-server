@@ -1,6 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { getBookings, getAllBookings, addBooking, getCalendarRules, updateCalendarRules } = require('../services/sheetsService');
+const { 
+  getBookings, 
+  getAllBookings, 
+  addBooking, 
+  updateBooking, 
+  getBookingById, 
+  getCalendarRules, 
+  updateCalendarRules,
+  addReview,
+  getReviews
+} = require('../services/supabaseService');
 const { createCalendarEvent } = require('../services/calendarService');
 const { sendConfirmationEmail, sendReceiptEmail } = require('../services/emailService');
 const { createPaymentIntent } = require('../services/paymentService');
@@ -18,36 +28,6 @@ router.post('/admin/login', (req, res) => {
   }
 });
 
-// Get Calendar Data (Bookings + Rules)
-// router.get('/calendar-data', async (req, res) => {
-//   try {
-//     const [bookings, rules] = await Promise.all([getBookings(), getCalendarRules()]);
-
-//     // Process Bookings
-//     const bookedDates = bookings
-//       .filter(b => b.status === 'booked')
-//       .map(b => ({
-//         start: b.check_in_date,
-//         end: b.check_out_date,
-//         type: 'booked'
-//       }));
-
-//     // Process Rules (Price & Blocks)
-//     const ruleData = rules.reduce((acc, rule) => {
-//       acc[rule.date] = {
-//         price: rule.price,
-//         status: rule.status
-//       };
-//       return acc;
-//     }, {});
-
-//     res.json({ bookedRanges: bookedDates, rules: ruleData });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: 'Server error' });
-//   }
-// });
-
 router.get('/calendar-data', async (req, res) => {
   try {
     const [bookings, rules, airbnb, mmt] = await Promise.all([
@@ -58,7 +38,7 @@ router.get('/calendar-data', async (req, res) => {
     ]);
 
     const websiteBookings = bookings
-      .filter(b => b.status === 'booked')
+      .filter(b => b.status === 'booked' || b.status === 'confirmed')
       .map(b => ({
         start: b.check_in_date,
         end: b.check_out_date,
@@ -107,8 +87,8 @@ router.get('/calendar.ics', async (req, res) => {
 
     // Confirmed website bookings
     for (const b of bookings) {
-      if (b.status !== 'booked') continue;
-      const uid = `${b.id || b.date}-website@krishhomestays.com`;
+      if (b.status !== 'booked' && b.status !== 'confirmed') continue;
+      const uid = `${b.booking_id || b.id || b.date}-website@krishhomestays.com`;
       events.push([
         'BEGIN:VEVENT',
         `DTSTART;VALUE=DATE:${toICalDate(b.check_in_date)}`,
@@ -181,6 +161,87 @@ router.post('/admin/rules', async (req, res) => {
   }
 });
 
+// Update Booking (Admin)
+router.post('/admin/update-booking', async (req, res) => {
+  try {
+    const booking = req.body;
+    const bookingId = booking['Booking Id'] || booking.booking_id;
+    if (!bookingId) {
+      return res.status(400).json({ success: false, error: 'Booking ID is required' });
+    }
+    const updated = await updateBooking(bookingId, booking);
+    res.json({ success: true, booking: updated });
+  } catch (err) {
+    console.error('Error updating booking in Supabase:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get single booking by Booking ID
+router.get('/bookings/:bookingId', async (req, res) => {
+  try {
+    const booking = await getBookingById(req.params.bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+    res.json({ 
+      success: true, 
+      booking,
+      data: {
+        ...booking,
+        'Booking Id': booking.booking_id,
+        'Guest Name': booking.guest_name,
+        'Email': booking.email,
+        'Phone Number': booking.phone,
+        'Check In Date': booking.check_in_date,
+        'Check Out Date': booking.check_out_date,
+        'Total Amount': booking.total_amount,
+        'Payment ID': booking.payment_id,
+        'Status': booking.status
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching booking from Supabase:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Cancel booking endpoint
+router.post('/cancel-booking', async (req, res) => {
+  try {
+    const { booking_id } = req.body;
+    if (!booking_id) {
+      return res.status(400).json({ success: false, error: 'Booking ID is required' });
+    }
+    const updated = await updateBooking(booking_id, { status: 'cancelled' });
+    res.json({ success: true, booking: updated });
+  } catch (err) {
+    console.error('Error cancelling booking:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Reviews endpoints
+router.get('/reviews', async (req, res) => {
+  try {
+    const reviews = await getReviews();
+    res.json({ success: true, reviews });
+  } catch (err) {
+    console.error('Error fetching reviews:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.post('/reviews', async (req, res) => {
+  try {
+    const review = await addReview(req.body);
+    res.json({ success: true, review });
+  } catch (err) {
+    console.error('Error adding review:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Create Payment Intent
 router.post('/create-payment-intent', async (req, res) => {
   const { amount } = req.body;
@@ -221,13 +282,37 @@ router.post("/verify-payment", (req, res) => {
 });
 
 
-// Create booking
+// Create or update booking in Supabase
 router.post('/bookings', async (req, res) => {
-  const { guest_name, email, phone, check_in_date, check_out_date, guests_count, adults, children, room_type, total_amount } = req.body;
+  const { 
+    guest_name, 
+    email, 
+    phone, 
+    check_in_date, 
+    check_out_date, 
+    guests_count, 
+    adults, 
+    children, 
+    room_type, 
+    booking_type,
+    total_amount, 
+    booking_id, 
+    status,
+    payment_id,
+    source,
+    notes 
+  } = req.body;
 
   if (!guest_name || !email || !check_in_date || !check_out_date) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
+
+  const phoneDigits = String(phone || '').replace(/\D/g, '');
+  if (!phone || phoneDigits.length < 10) {
+    return res.status(400).json({ error: 'Please provide a valid phone number with at least 10 digits' });
+  }
+
+  const targetStatus = status || 'confirmed';
 
   try {
     const bookings = await getBookings();
@@ -238,14 +323,15 @@ router.post('/bookings', async (req, res) => {
     const newEnd = new Date(check_out_date);
 
     const hasBookingOverlap = bookings.some(booking => {
-      if (booking.status !== 'confirmed') return false;
+      // Don't conflict with itself if updating the same booking_id
+      if (booking_id && booking.booking_id === booking_id) return false;
+      if (booking.status !== 'confirmed' && booking.status !== 'booked') return false;
       const start = new Date(booking.check_in_date);
       const end = new Date(booking.check_out_date);
       return (newStart < end && newEnd > start);
     });
 
     // Check overlap with blocked dates
-    // We iterate through each day of the requested stay
     let currentDate = new Date(newStart);
     let hasBlockOverlap = false;
     while (currentDate < newEnd) {
@@ -258,12 +344,13 @@ router.post('/bookings', async (req, res) => {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    if (hasBookingOverlap || hasBlockOverlap) {
+    if (targetStatus === 'confirmed' && (hasBookingOverlap || hasBlockOverlap)) {
       return res.status(409).json({ error: 'Dates not available' });
     }
 
-    // Add to Google Sheet
+    // Add / Upsert to Supabase
     const newBooking = {
+      booking_id,
       guest_name,
       email,
       phone,
@@ -272,8 +359,13 @@ router.post('/bookings', async (req, res) => {
       guests_count,
       adults,
       children,
-      room_type,
-      total_amount
+      room_type: room_type || 'full',
+      booking_type: booking_type || (room_type === 'partial' ? 'half villa' : room_type === 'remaining' ? 'remaining' : 'full villa'),
+      status: targetStatus,
+      total_amount,
+      payment_id: payment_id || null,
+      source: source || 'website',
+      notes: notes || null
     };
 
     const savedBooking = await addBooking(newBooking);
@@ -284,10 +376,10 @@ router.post('/bookings', async (req, res) => {
     // Create Calendar Event
     // await createCalendarEvent(savedBooking);
 
-    res.status(201).json(savedBooking);
+    res.status(201).json({ success: true, booking: savedBooking });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error creating booking:', err);
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 });
 
