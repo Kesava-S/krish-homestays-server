@@ -1,4 +1,5 @@
 function generateReceiptHTML(booking, payment = {}) {
+  const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
   const date = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
   const year = new Date().getFullYear();
   const roomLabel = booking.room_label ||
@@ -264,7 +265,7 @@ function generateReceiptHTML(booking, payment = {}) {
               <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:10px;padding:20px;text-align:center;margin-bottom:28px;">
                 <p style="margin:0 0 6px 0;font-size:14px;color:#333;font-weight:700;">Need to cancel your booking?</p>
                 <p style="margin:0 0 16px 0;font-size:12px;color:#888;line-height:1.6;">Click below to cancel your reservation and initiate a refund as per our policy.</p>
-                <a href="https://krishhomestays.com/cancellation"
+                <a href="${CLIENT_URL}/cancellation?booking_id=${booking.booking_id || ''}"
                    style="display:inline-block;background:#dc2626;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:13px;font-weight:bold;">
                   &#128683; Cancel Booking
                 </a>
