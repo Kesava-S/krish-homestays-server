@@ -394,6 +394,36 @@ async function updateBookingStatus(bookingId, status) {
 }
 
 /**
+ * Delete a booking by booking_id and clean up calendar rules
+ */
+async function deleteBooking(bookingId) {
+    if (!supabase || !bookingId) return false;
+    const cleanId = String(bookingId).trim().toUpperCase();
+
+    try {
+        const existing = await getBookingById(cleanId);
+        if (existing) {
+            await unblockDatesForBooking(existing);
+        }
+
+        const { error } = await supabase
+            .from('bookings')
+            .delete()
+            .eq('booking_id', cleanId);
+
+        if (error) {
+            console.error(`[Supabase] Error deleting booking ${cleanId}:`, error);
+            throw error;
+        }
+
+        return true;
+    } catch (err) {
+        console.error('Exception deleting booking:', err);
+        throw err;
+    }
+}
+
+/**
  * Append an entry to notes preserving chronological history with bullet point and newline
  */
 function appendNote(existingNotes, noteText) {
@@ -823,6 +853,7 @@ module.exports = {
     addBooking,
     updateBooking,
     updateBookingStatus,
+    deleteBooking,
     getBookingById,
     getCalendarRules,
     updateCalendarRules,

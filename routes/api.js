@@ -6,6 +6,7 @@ const {
   addBooking, 
   updateBooking, 
   updateBookingStatus,
+  deleteBooking,
   getBookingById, 
   getCalendarRules, 
   updateCalendarRules,
@@ -311,6 +312,28 @@ router.post('/admin/add-booking', async (req, res) => {
   } catch (err) {
     console.error('Error adding booking by admin:', err);
     logAppError({ endpoint: '/api/admin/add-booking', req, error: err });
+    res.status(500).json({ success: false, error: err.message || 'Server error' });
+  }
+});
+
+// Delete a booking (Admin)
+router.post('/admin/delete-booking', async (req, res) => {
+  try {
+    const { booking_id, bookingId } = req.body;
+    const bId = (booking_id || bookingId || req.body['Booking Id'] || '').trim().toUpperCase();
+    if (!bId) {
+      return res.status(400).json({ success: false, error: 'Booking ID is required' });
+    }
+
+    await deleteBooking(bId);
+
+    logUser({ action: 'admin_delete_booking', userIdentifier: 'admin', userType: 'admin', req, metadata: { booking_id: bId } });
+    logApp('info', 'booking', 'admin_delete_booking', `Admin deleted booking ${bId}`, { booking_id: bId });
+
+    res.json({ success: true, message: `Booking ${bId} deleted successfully` });
+  } catch (err) {
+    console.error('Error deleting booking:', err);
+    logAppError({ endpoint: '/api/admin/delete-booking', req, error: err });
     res.status(500).json({ success: false, error: err.message || 'Server error' });
   }
 });
