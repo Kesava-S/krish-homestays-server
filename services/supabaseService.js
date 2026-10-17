@@ -592,9 +592,11 @@ async function updateCalendarRules(rules) {
 
             const rawStatus = String(r.rule_type || r.status || 'available').toLowerCase();
             const ruleType = rawStatus === 'booked' ? 'booked' : rawStatus === 'blocked' ? 'blocked' : 'available';
-            const unit = String(r.unit || r.room_type || '').toLowerCase().includes('half') ? 'half_villa' : 'full_villa';
+            const unit = String(r.unit || r.room_type || '').toLowerCase().includes('half') ||
+                         String(r.unit || r.room_type || '').toLowerCase().includes('partial')
+                         ? 'half_villa' : 'full_villa';
             const rulePrice = r.price !== '' && r.price != null ? Number(r.price) : null;
-            const reason = r.reason || (ruleType === 'blocked' ? 'Blocked by administrator' : ruleType === 'booked' ? 'Booking block' : 'Custom price rule');
+            const reason = r.reason || (ruleType === 'blocked' ? 'Blocked by administrator' : ruleType === 'booked' ? 'Booking block' : (unit === 'half_villa' ? 'Exclude one room price rule' : 'Full villa price rule'));
             const bookingId = r.booking_id || null;
 
             // Check if rule already exists for this exact range and unit

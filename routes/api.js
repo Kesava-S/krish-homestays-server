@@ -98,16 +98,34 @@ router.get('/calendar-data', async (req, res) => {
         if (!hasActiveBooking) return acc;
       }
 
-      acc[rule.date] = {
-        id: rule.id,
-        rule_id: rule.rule_id || rule.id,
-        booking_id: rule.booking_id,
-        reason: rule.reason,
-        price: rule.price,
-        status: rule.status,
-        unit: rule.unit,
-        room_type: rule.room_type || 'full'
-      };
+      const isPartial = String(rule.unit || rule.room_type || '').toLowerCase().includes('half') ||
+                        String(rule.unit || rule.room_type || '').toLowerCase().includes('partial');
+
+      if (!acc[rule.date]) {
+        acc[rule.date] = {
+          id: rule.id,
+          rule_id: rule.rule_id || rule.id,
+          booking_id: rule.booking_id,
+          reason: rule.reason,
+          price: isPartial ? null : rule.price,
+          partial_price: isPartial ? rule.price : null,
+          status: rule.status,
+          unit: rule.unit,
+          room_type: rule.room_type || (isPartial ? 'partial' : 'full')
+        };
+      } else {
+        if (isPartial) {
+          acc[rule.date].partial_price = rule.price;
+        } else {
+          acc[rule.date].price = rule.price;
+          acc[rule.date].id = rule.id;
+          acc[rule.date].rule_id = rule.rule_id || rule.id;
+        }
+        if (rule.status === 'blocked' || rule.status === 'booked') {
+          acc[rule.date].status = rule.status;
+        }
+      }
+
       return acc;
     }, {});
 
@@ -391,20 +409,23 @@ router.post('/admin/rules', async (req, res) => {
       await updateCalendarRules(safeRules);
     }
 
-    if (skippedBooked.length > 0 && safeRules.length === 0) {
+    const uniqueSkippedDates = Array.from(new Set(skippedBooked.map(s => s.date)));
+    const uniqueSafeDates = Array.from(new Set(safeRules.map(s => s.date || s.start_date)));
+
+    if (uniqueSkippedDates.length > 0 && uniqueSafeDates.length === 0) {
       return res.status(409).json({
         success: false,
-        error: `Cannot apply rule: Date(s) ${skippedBooked.map(s => s.date).join(', ')} are already booked by ${skippedBooked[0].guest_name} (${skippedBooked[0].booking_id}). Rules cannot override active bookings.`,
+        error: `Cannot apply rule: Date(s) ${uniqueSkippedDates.join(', ')} are already booked by ${skippedBooked[0].guest_name} (${skippedBooked[0].booking_id}). Rules cannot override active bookings.`,
         skipped: skippedBooked
       });
     }
 
     res.json({
       success: true,
-      message: skippedBooked.length > 0 
-        ? `Rules updated for ${safeRules.length} date(s). ${skippedBooked.length} already booked date(s) were protected and skipped.`
-        : 'Calendar rules updated successfully',
-      updatedCount: safeRules.length,
+      message: uniqueSkippedDates.length > 0 
+        ? `Rules updated for ${uniqueSafeDates.length} date(s). ${uniqueSkippedDates.length} already booked date(s) were protected and skipped.`
+        : `Calendar rules updated successfully for ${uniqueSafeDates.length} date(s)`,
+      updatedCount: uniqueSafeDates.length,
       skippedBooked
     });
   } catch (err) {
